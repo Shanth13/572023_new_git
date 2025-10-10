@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bug Demo App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            margin: 10px 0;
+        }
+        .post {
+            border: 1px solid #eee;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bug Demo Application</h1>
+    
+    <div class="container">
+        <h2>User Registration</h2>
+        <input type="text" id="regUsername" placeholder="Username">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Password">
+        <button onclick="register()">Register</button>
+        <div id="regMessage"></div>
+    </div>
+    
+    <div class="container">
+        <h2>User Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <div id="loginMessage"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Search Posts</h2>
+        <input type="text" id="searchQuery" placeholder="Search posts...">
+        <button onclick="searchPosts()">Search</button>
+        <div id="searchResults"></div>
+    </div>
+    
+    <div class="container">
+        <h2>All Posts</h2>
+        <button onclick="loadPosts()">Load Posts</button>
+        <div id="posts"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Initialize Sample Data</h2>
+        <button onclick="seedData()">Create Sample Data</button>
+        <div id="seedMessage"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        
+        async function register() {
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await response.json();
+                document.getElementById('regMessage').innerHTML = 
+                    `<div class="${response.ok ? 'success' : 'error'}">${data.message || data.error}</div>`;
+            } catch (error) {
+                document.getElementById('regMessage').innerHTML = 
+                    `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                document.getElementById('loginMessage').innerHTML = 
+                    `<div class="${response.ok ? 'success' : 'error'}">${data.message || data.error}</div>`;
+            } catch (error) {
+                document.getElementById('loginMessage').innerHTML = 
+                    `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function searchPosts() {
+            const query = document.getElementById('searchQuery').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/search?query=${encodeURIComponent(query)}`);
+                const posts = await response.json();
+                
+                let html = '<h3>Search Results:</h3>';
+                if (posts.length === 0) {
+                    html += '<p>No posts found.</p>';
+                } else {
+                    posts.forEach(post => {
+                        html += `<div class="post">
+                            <h4>${post.title}</h4>
+                            <p>${post.content}</p>
+                            <small>Posted on: ${new Date(post.created_at).toLocaleDateString()}</small>
+                        </div>`;
+                    });
+                }
+                
+                document.getElementById('searchResults').innerHTML = html;
+            } catch (error) {
+                document.getElementById('searchResults').innerHTML = 
+                    `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function loadPosts() {
+            try {
+                const response = await fetch(`${API_BASE}/posts`);
+                const posts = await response.json();
+                
+                let html = '<h3>All Posts:</h3>';
+                if (posts.length === 0) {
+                    html += '<p>No posts available.</p>';
+                } else {
+                    posts.forEach(post => {
+                        html += `<div class="post">
+                            <h4>${post.title}</h4>
+                            <p>${post.content}</p>
+                            <small>By: ${post.username || 'Unknown'} | Posted: ${new Date(post.created_at).toLocaleDateString()}</small>
+                        </div>`;
+                    });
+                }
+                
+                document.getElementById('posts').innerHTML = html;
+            } catch (error) {
+                document.getElementById('posts').innerHTML = 
+                    `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function seedData() {
+            try {
+                const response = await fetch(`${API_BASE}/seed`, { method: 'POST' });
+                const data = await response.json();
+                document.getElementById('seedMessage').innerHTML = 
+                    `<div class="success">${data.message}</div>`;
+            } catch (error) {
+                document.getElementById('seedMessage').innerHTML = 
+                    `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
